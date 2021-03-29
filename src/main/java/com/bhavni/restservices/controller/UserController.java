@@ -1,9 +1,16 @@
 package com.bhavni.restservices.controller;
 
 import com.bhavni.restservices.entities.User;
+import com.bhavni.restservices.exception.UserExistsException;
+import com.bhavni.restservices.exception.UserNotFoundException;
 import com.bhavni.restservices.services.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
 import java.util.Optional;
@@ -20,17 +27,24 @@ public class UserController {
     }
 
     @PostMapping("/users")
-    public User createUser(@RequestBody User user){
-        return userService.createUser(user);
+    public ResponseEntity<Void> createUser(@RequestBody User user, UriComponentsBuilder uriComponentsBuilder) throws UserExistsException {
+        userService.createUser(user);
+        HttpHeaders headers=new HttpHeaders();
+        headers.setLocation(uriComponentsBuilder.path("/users/{id}").buildAndExpand(user.getId()).toUri());
+        return new ResponseEntity<Void>(headers,HttpStatus.CREATED);
     }
 
     @GetMapping("/userById/{id}")
     public Optional<User> getUserById(@PathVariable("id") Long id){
-        return userService.getUserById(id);
+        try {
+            return userService.getUserById(id);
+        } catch(UserNotFoundException userExec){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,userExec.getMessage());
+        }
     }
 
     @PutMapping("/user/{id}")
-    public User updateUserById(@PathVariable("id") Long id,@RequestBody User user){
+    public User updateUserById(@PathVariable("id") Long id,@RequestBody User user) throws UserNotFoundException {
         return userService.updateUserById(id,user);
     }
 
